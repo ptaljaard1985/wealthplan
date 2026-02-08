@@ -22,11 +22,15 @@ export function useAdmin() {
       }
 
       // Try to fetch existing profile
-      let { data: profile } = await supabase
+      let { data: profile, error } = await supabase
         .from("user_profiles")
         .select("*")
         .eq("id", user.id)
         .single();
+
+      if (error) {
+        console.error("useAdmin: failed to fetch profile", error);
+      }
 
       // Auto-create profile if none exists (pre-migration users)
       if (!profile) {
