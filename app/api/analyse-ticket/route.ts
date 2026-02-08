@@ -106,8 +106,8 @@ export async function POST(req: NextRequest) {
       .from("support_requests")
       .update({
         ai_summary: analysis.summary,
-        ai_affected_areas: JSON.stringify(analysis.affectedAreas),
-        ai_implementation: JSON.stringify(analysis.implementation),
+        ai_affected_areas: analysis.affectedAreas,
+        ai_implementation: analysis.implementation,
         ai_prompt: analysis.prompt,
         ai_analysis_status: "done",
       })

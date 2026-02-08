@@ -36,8 +36,18 @@ export function RequestDetailModal({ open, onClose, request, onRefresh }: Reques
   const [analysing, setAnalysing] = useState(false);
   const [aiStatus, setAiStatus] = useState(request.ai_analysis_status);
   const [aiSummary, setAiSummary] = useState(request.ai_summary);
-  const [aiAreas, setAiAreas] = useState(request.ai_affected_areas);
-  const [aiSteps, setAiSteps] = useState(request.ai_implementation);
+  const [aiAreas, setAiAreas] = useState<string[] | null>(() => {
+    const v = request.ai_affected_areas;
+    if (Array.isArray(v)) return v;
+    if (typeof v === "string") try { return JSON.parse(v); } catch { return null; }
+    return v ?? null;
+  });
+  const [aiSteps, setAiSteps] = useState<{ step: number; description: string; file?: string }[] | null>(() => {
+    const v = request.ai_implementation;
+    if (Array.isArray(v)) return v;
+    if (typeof v === "string") try { return JSON.parse(v); } catch { return null; }
+    return v ?? null;
+  });
   const [aiPrompt, setAiPrompt] = useState(request.ai_prompt);
   const [copied, setCopied] = useState(false);
   const [priority, setPriority] = useState<SupportRequest["priority"]>(request.priority);

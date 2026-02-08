@@ -25,13 +25,17 @@ export function TicketAttachments({ ticketId, canUpload, canDelete }: TicketAtta
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   async function fetchAttachments() {
-    const supabase = createClient();
-    const { data } = await supabase
-      .from("ticket_attachments")
-      .select("*")
-      .eq("ticket_id", ticketId)
-      .order("created_at", { ascending: true });
-    if (data) setAttachments(data);
+    try {
+      const supabase = createClient();
+      const { data } = await supabase
+        .from("ticket_attachments")
+        .select("*")
+        .eq("ticket_id", ticketId)
+        .order("created_at", { ascending: true });
+      if (data) setAttachments(data);
+    } catch {
+      // Table may not exist yet if migration hasn't run
+    }
   }
 
   useEffect(() => {
