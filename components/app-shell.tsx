@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LayoutDashboard, LogOut } from "lucide-react";
+import { LayoutDashboard, LogOut, Shield } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { useAdmin } from "@/lib/hooks/use-admin";
 
 const navItems = [
   { href: "/dashboard", label: "Client Families", icon: LayoutDashboard },
@@ -12,6 +13,7 @@ const navItems = [
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
+  const { isAdmin } = useAdmin();
 
   async function handleSignOut() {
     const supabase = createClient();
@@ -40,21 +42,31 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             );
           })}
         </nav>
-        <button
-          onClick={handleSignOut}
-          className="nav-link"
-          style={{
-            marginTop: "auto",
-            border: "none",
-            background: "none",
-            cursor: "pointer",
-            width: "100%",
-            textAlign: "left",
-          }}
-        >
-          <LogOut size={18} />
-          Sign out
-        </button>
+        <div style={{ marginTop: "auto", display: "flex", flexDirection: "column", gap: "2px" }}>
+          {isAdmin && (
+            <Link
+              href="/admin"
+              className={`nav-link ${pathname === "/admin" ? "nav-link-active" : ""}`}
+            >
+              <Shield size={18} />
+              Admin
+            </Link>
+          )}
+          <button
+            onClick={handleSignOut}
+            className="nav-link"
+            style={{
+              border: "none",
+              background: "none",
+              cursor: "pointer",
+              width: "100%",
+              textAlign: "left",
+            }}
+          >
+            <LogOut size={18} />
+            Sign out
+          </button>
+        </div>
       </aside>
 
       <style>{`

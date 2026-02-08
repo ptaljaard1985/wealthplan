@@ -515,6 +515,83 @@ body {
   background: var(--gray-100);
 }
 
+/* ── Feedback FAB ────────────────────────────────────── */
+
+.feedback-fab {
+  position: fixed;
+  bottom: var(--space-6);
+  right: var(--space-6);
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--brand-500);
+  color: #ffffff;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-md);
+  z-index: 45;
+  transition: background var(--transition-fast), transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.feedback-fab:hover {
+  background: var(--brand-600);
+  transform: scale(1.08);
+  box-shadow: var(--shadow-lg);
+}
+
+.feedback-fab:active {
+  transform: scale(0.96);
+}
+
+/* ── Kanban Board ────────────────────────────────────── */
+
+.kanban-board {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-5);
+}
+
+@media (max-width: 768px) {
+  .kanban-board {
+    grid-template-columns: 1fr;
+  }
+}
+
+.kanban-column {
+  background: var(--surface-sunken);
+  border-radius: 12px;
+  padding: var(--space-4);
+  min-height: 200px;
+}
+
+.kanban-column-header {
+  display: flex;
+  align-items: center;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--gray-700);
+  margin-bottom: var(--space-4);
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--border-default);
+}
+
+.kanban-card {
+  background: var(--surface-primary);
+  border: 1px solid var(--border-default);
+  border-radius: 10px;
+  padding: var(--space-3) var(--space-4);
+  cursor: pointer;
+  transition: box-shadow var(--transition-fast), transform var(--transition-fast);
+}
+
+.kanban-card:hover {
+  box-shadow: var(--shadow-sm);
+  transform: translateY(-1px);
+}
+
 /* ── Animations ───────────────────────────────────────── */
 
 @keyframes pageFadeUp {

@@ -109,6 +109,28 @@ export interface WithdrawalOrder {
   priority: number;
 }
 
+export interface UserProfile {
+  id: string;
+  email: string;
+  display_name: string | null;
+  is_admin: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SupportRequest {
+  id: string;
+  user_id: string;
+  user_email: string;
+  request_type: "bug" | "feature" | "question";
+  details: string;
+  screen_path: string | null;
+  status: "new" | "in_progress" | "done";
+  admin_notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 /* ── Composite types for joined queries ───────────────── */
 
 export interface FamilyMemberWithAccounts extends FamilyMember {

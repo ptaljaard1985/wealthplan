@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Instrument_Sans, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { FeedbackButton } from "@/components/feedback/feedback-button";
 
 const instrumentSans = Instrument_Sans({
   subsets: ["latin"],
@@ -26,6 +27,7 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${instrumentSans.variable} ${geistMono.variable}`}>
         {children}
+        <FeedbackButton />
       </body>
     </html>
   );
