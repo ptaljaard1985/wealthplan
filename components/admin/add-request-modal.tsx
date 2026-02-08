@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
+import { Paperclip } from "lucide-react";
 import { Modal } from "@/components/ui/modal";
 import { SelectField, TextareaField } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -22,7 +23,9 @@ const typeOptions = [
 export function AddRequestModal({ open, onClose, onCreated }: AddRequestModalProps) {
   const [requestType, setRequestType] = useState("feature");
   const [details, setDetails] = useState("");
+  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const [saving, setSaving] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -53,9 +56,29 @@ export function AddRequestModal({ open, onClose, onCreated }: AddRequestModalPro
 
     setSaving(false);
     if (!error && inserted) {
+      // Upload pending files
+      for (const file of pendingFiles) {
+        const storagePath = `${inserted.id}/${Date.now()}-${file.name}`;
+        const { error: uploadErr } = await supabase.storage
+          .from("ticket-attachments")
+          .upload(storagePath, file);
+        if (!uploadErr) {
+          await supabase.from("ticket_attachments").insert({
+            ticket_id: inserted.id,
+            file_name: file.name,
+            file_size: file.size,
+            content_type: file.type || "application/octet-stream",
+            storage_path: storagePath,
+            uploaded_by: user.id,
+          });
+        }
+      }
+
       triggerAnalysis(inserted.id);
       setRequestType("feature");
       setDetails("");
+      setPendingFiles([]);
+      if (fileInputRef.current) fileInputRef.current.value = "";
       onCreated();
       onClose();
     }
@@ -82,6 +105,27 @@ export function AddRequestModal({ open, onClose, onCreated }: AddRequestModalPro
           onChange={(e) => setDetails(e.target.value)}
           required
         />
+        <div>
+          <label
+            className="label"
+            style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", marginBottom: "var(--space-2)" }}
+          >
+            <Paperclip size={14} />
+            Attachments
+          </label>
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            onChange={(e) => setPendingFiles(Array.from(e.target.files || []))}
+            style={{ fontSize: "var(--text-sm)" }}
+          />
+          {pendingFiles.length > 0 && (
+            <p style={{ fontSize: "var(--text-xs)", color: "var(--gray-500)", marginTop: "var(--space-1)" }}>
+              {pendingFiles.length} file{pendingFiles.length !== 1 ? "s" : ""} selected
+            </p>
+          )}
+        </div>
         <div
           style={{
             display: "flex",

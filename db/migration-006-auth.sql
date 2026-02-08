@@ -16,7 +16,7 @@ CREATE INDEX IF NOT EXISTS idx_client_families_user_id
 -- Uncomment and replace with your actual user UUID from
 -- Supabase Dashboard → Authentication → Users
 --
--- UPDATE client_families SET user_id = '5edac78a-263e-450d-a51d-725800a48e0e';
+-- UPDATE client_families SET user_id = '<YOUR_USER_UUID>';
 
 -- ── Step 3: Make user_id NOT NULL (run after backfill) ────
 -- Uncomment after backfilling:

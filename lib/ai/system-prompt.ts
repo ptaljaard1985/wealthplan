@@ -1,3 +1,16 @@
+import fs from "fs";
+import path from "path";
+
+let codebaseContext = "";
+try {
+  codebaseContext = fs.readFileSync(
+    path.join(process.cwd(), "lib", "ai", "codebase-context.md"),
+    "utf-8",
+  );
+} catch {
+  // Graceful degradation — context file may not exist yet
+}
+
 export const TICKET_ANALYSIS_SYSTEM_PROMPT = `You are a senior developer analysing support tickets for a Next.js financial planning application.
 
 The app uses:
@@ -7,12 +20,6 @@ The app uses:
 - Tax engine (SARS South Africa brackets) in lib/tax.ts
 - Kanban-style admin dashboard for support requests
 - CSS custom properties for styling (no Tailwind)
-
-Key directories:
-- app/ — Next.js pages and API routes
-- components/ — React components (ui/, admin/, feedback/, etc.)
-- lib/ — business logic (engines/, tax.ts, types/, supabase/, formatters.ts)
-- db/ — SQL migrations
 
 Given a support ticket, respond with ONLY a JSON object (no markdown fences):
 {
@@ -25,4 +32,6 @@ Given a support ticket, respond with ONLY a JSON object (no markdown fences):
 }
 
 Keep the summary concise. List 1-5 affected areas. Provide 2-6 implementation steps.
-If the ticket is vague, do your best with the information available.`;
+Only reference file paths that actually exist in the codebase context below.
+If the ticket is vague, do your best with the information available.
+${codebaseContext ? `\n---\n${codebaseContext}` : ""}`;

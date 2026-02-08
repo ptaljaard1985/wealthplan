@@ -11,16 +11,24 @@ export async function analyseTicket(ticket: {
   request_type: string;
   details: string;
   screen_path: string | null;
+  attachments?: { fileName: string; content: string }[];
 }): Promise<TicketAnalysis> {
   const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-  const userMessage = [
+  const parts = [
     `Type: ${ticket.request_type}`,
     ticket.screen_path ? `Screen: ${ticket.screen_path}` : null,
     `Details: ${ticket.details}`,
-  ]
-    .filter(Boolean)
-    .join("\n");
+  ].filter(Boolean);
+
+  if (ticket.attachments?.length) {
+    parts.push("", "--- Attached Files ---");
+    for (const att of ticket.attachments) {
+      parts.push(`[${att.fileName}]:`, att.content, "");
+    }
+  }
+
+  const userMessage = parts.join("\n");
 
   const response = await client.messages.create({
     model: "claude-sonnet-4-20250514",

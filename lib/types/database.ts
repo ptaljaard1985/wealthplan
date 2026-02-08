@@ -135,6 +135,17 @@ export interface SupportRequest {
   updated_at: string;
 }
 
+export interface TicketAttachment {
+  id: string;
+  ticket_id: string;
+  file_name: string;
+  file_size: number;
+  content_type: string;
+  storage_path: string;
+  uploaded_by: string;
+  created_at: string;
+}
+
 /* ── Composite types for joined queries ───────────────── */
 
 export interface FamilyMemberWithAccounts extends FamilyMember {

@@ -5,6 +5,7 @@ import { Sparkles, Loader2 } from "lucide-react";
 import { Modal } from "@/components/ui/modal";
 import { TextareaField } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { TicketAttachments } from "@/components/shared/ticket-attachments";
 import { createClient } from "@/lib/supabase/client";
 import { formatRelativeTime } from "@/lib/formatters";
 import type { SupportRequest } from "@/lib/types/database";
@@ -125,6 +126,11 @@ export function RequestDetailModal({ open, onClose, request, onRefresh }: Reques
         <div>
           <p className="label">Details</p>
           <p style={{ fontSize: "var(--text-sm)", whiteSpace: "pre-wrap" }}>{request.details}</p>
+        </div>
+
+        {/* Attachments */}
+        <div style={{ borderTop: "1px solid var(--border-default)", paddingTop: "var(--space-4)" }}>
+          <TicketAttachments ticketId={request.id} canUpload={true} canDelete={true} />
         </div>
 
         {/* AI Analysis */}

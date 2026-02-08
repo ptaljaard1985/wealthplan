@@ -14,18 +14,6 @@ create table if not exists public.user_profiles (
 -- RLS
 alter table public.user_profiles enable row level security;
 
--- Helper: check admin status without RLS recursion
-create or replace function public.is_admin()
-returns boolean
-language sql
-security definer set search_path = ''
-as $$
-  select coalesce(
-    (select is_admin from public.user_profiles where id = auth.uid()),
-    false
-  );
-$$;
-
 -- Users can read their own profile
 create policy "Users read own profile"
   on public.user_profiles for select
@@ -39,7 +27,12 @@ create policy "Users update own profile"
 -- Admins can read all profiles
 create policy "Admins read all profiles"
   on public.user_profiles for select
-  using (public.is_admin());
+  using (
+    exists (
+      select 1 from public.user_profiles
+      where id = auth.uid() and is_admin = true
+    )
+  );
 
 -- Auto-create profile on signup
 create or replace function public.handle_new_user()
@@ -98,22 +91,37 @@ create policy "Users read own requests"
 -- Admins can read all requests
 create policy "Admins read all requests"
   on public.support_requests for select
-  using (public.is_admin());
+  using (
+    exists (
+      select 1 from public.user_profiles
+      where id = auth.uid() and is_admin = true
+    )
+  );
 
 -- Admins can update all requests
 create policy "Admins update all requests"
   on public.support_requests for update
-  using (public.is_admin());
+  using (
+    exists (
+      select 1 from public.user_profiles
+      where id = auth.uid() and is_admin = true
+    )
+  );
 
 -- Admins can delete requests
 create policy "Admins delete requests"
   on public.support_requests for delete
-  using (public.is_admin());
+  using (
+    exists (
+      select 1 from public.user_profiles
+      where id = auth.uid() and is_admin = true
+    )
+  );
 
 -- ── Seed: Mark Pierre as admin ────────────────────────────────
----Run after migration. Replace the UUID if needed, or use email match:
-insert into public.user_profiles (id, email, display_name, is_admin)
-select id, email, 'Pierre', true
-from auth.users
-where email = 'pierre@simplewealth.co.za'
-on conflict (id) do update set is_admin = true;
+-- Run after migration. Replace the UUID if needed, or use email match:
+-- insert into public.user_profiles (id, email, display_name, is_admin)
+--   select id, email, 'Pierre', true
+--   from auth.users
+--   where email = 'pierre@simplewealth.co.za'
+--   on conflict (id) do update set is_admin = true;
