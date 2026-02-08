@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Wealth Projector",
-  description: "Financial planning and projection tool",
+  title: "Wealth Plan — Financial Planning for South African Advisors",
+  description: "Project wealth, model scenarios, and plan tax-efficient retirement strategies. Purpose-built for independent financial planners in South Africa.",
 };
 
 export default function RootLayout({
