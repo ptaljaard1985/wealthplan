@@ -123,6 +123,7 @@ db/
   migration-008-ai-analysis.sql
   migration-009-ticket-attachments.sql
   migration-010-ai-prompt.sql
+  migration-011-priority.sql
   schema.sql
 ```
 
@@ -172,7 +173,7 @@ db/
 - lib/types/database.ts: LifeEvent { id, family_id, label, event_year, icon, color, notes, created_at }
 - lib/types/database.ts: WithdrawalOrder { id, family_id, account_id, priority }
 - lib/types/database.ts: UserProfile { id, email, display_name, is_admin, created_at, updated_at }
-- lib/types/database.ts: SupportRequest { id, user_id, user_email, request_type, details, screen_path, status, admin_notes, ai_summary, ai_affected_areas, ai_implementation }
+- lib/types/database.ts: SupportRequest { id, user_id, user_email, request_type, details, screen_path, status, priority, admin_notes, ai_summary, ai_affected_areas, ai_implementation }
 - lib/types/database.ts: TicketAttachment { id, ticket_id, file_name, file_size, content_type, storage_path, uploaded_by, created_at }
 - lib/types/database.ts: FamilyMemberWithAccounts { accounts }
 - lib/types/database.ts: FamilyMemberWithIncome { income }
@@ -202,3 +203,4 @@ db/
 - migration-008-ai-analysis.sql
 - migration-009-ticket-attachments.sql
 - migration-010-ai-prompt.sql
+- migration-011-priority.sql

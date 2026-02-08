@@ -126,6 +126,7 @@ export interface SupportRequest {
   details: string;
   screen_path: string | null;
   status: "new" | "in_progress" | "done";
+  priority: "p1" | "p2" | "p3" | null;
   admin_notes: string | null;
   ai_summary: string | null;
   ai_affected_areas: string[] | null;

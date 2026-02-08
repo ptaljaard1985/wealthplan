@@ -80,10 +80,18 @@ export function KanbanBoard({ requests, onRefresh }: KanbanBoardProps) {
                     onClick={() => setSelectedRequest(req)}
                   >
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "var(--space-2)" }}>
-                      <span className={`badge ${typeBadgeClass[req.request_type]}`}>
-                        {typeIcons[req.request_type]}
-                        <span style={{ marginLeft: "4px" }}>{req.request_type}</span>
-                      </span>
+                      <div style={{ display: "flex", alignItems: "center", gap: "var(--space-1)" }}>
+                        <span className={`badge ${typeBadgeClass[req.request_type]}`}>
+                          {typeIcons[req.request_type]}
+                          <span style={{ marginLeft: "4px" }}>{req.request_type}</span>
+                        </span>
+                        {req.priority && (
+                          <span className={`badge ${req.priority === "p1" ? "badge-error" : req.priority === "p2" ? "badge-warning" : "badge-info"}`}
+                            style={{ fontWeight: 700, fontSize: "var(--text-xs)" }}>
+                            {req.priority.toUpperCase()}
+                          </span>
+                        )}
+                      </div>
                       <span style={{ display: "flex", alignItems: "center", gap: "var(--space-1)", fontSize: "var(--text-xs)", color: "var(--gray-400)" }}>
                         {req.ai_analysis_status === "done" && (
                           <Sparkles size={12} style={{ color: "var(--brand-500)" }} />

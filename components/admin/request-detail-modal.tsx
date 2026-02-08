@@ -40,6 +40,18 @@ export function RequestDetailModal({ open, onClose, request, onRefresh }: Reques
   const [aiSteps, setAiSteps] = useState(request.ai_implementation);
   const [aiPrompt, setAiPrompt] = useState(request.ai_prompt);
   const [copied, setCopied] = useState(false);
+  const [priority, setPriority] = useState<SupportRequest["priority"]>(request.priority);
+
+  async function handlePriorityChange(p: SupportRequest["priority"]) {
+    const next = p === priority ? null : p;
+    setPriority(next);
+    const supabase = createClient();
+    await supabase
+      .from("support_requests")
+      .update({ priority: next, updated_at: new Date().toISOString() })
+      .eq("id", request.id);
+    onRefresh();
+  }
 
   async function handleSaveNotes() {
     setSaving(true);
@@ -99,14 +111,44 @@ export function RequestDetailModal({ open, onClose, request, onRefresh }: Reques
     <Modal open={open} onClose={onClose} title="Request Details">
       <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
         {/* Meta */}
-        <div style={{ display: "flex", gap: "var(--space-3)", flexWrap: "wrap" }}>
+        <div style={{ display: "flex", gap: "var(--space-3)", flexWrap: "wrap", alignItems: "center" }}>
           <span className={`badge ${statusBadgeClass[request.status]}`}>
             {statusLabels[request.status]}
           </span>
           <span className="badge">{request.request_type}</span>
+          {priority && (
+            <span className={`badge ${priority === "p1" ? "badge-error" : priority === "p2" ? "badge-warning" : "badge-info"}`}
+              style={{ fontWeight: 700 }}>
+              {priority.toUpperCase()}
+            </span>
+          )}
           <span style={{ fontSize: "var(--text-xs)", color: "var(--gray-500)" }}>
             {formatRelativeTime(request.created_at)}
           </span>
+        </div>
+
+        {/* Priority */}
+        <div>
+          <p className="label" style={{ marginBottom: "var(--space-2)" }}>Priority</p>
+          <div style={{ display: "flex", gap: "var(--space-2)" }}>
+            {(["p1", "p2", "p3"] as const).map((p) => (
+              <button
+                key={p}
+                className={priority === p ? "btn-primary" : "btn-secondary"}
+                style={{
+                  padding: "4px 12px",
+                  fontSize: "var(--text-sm)",
+                  fontWeight: 700,
+                  ...(priority === p && p === "p1" ? { background: "var(--error-500)" } : {}),
+                  ...(priority === p && p === "p2" ? { background: "var(--warning-500)" } : {}),
+                  ...(priority === p && p === "p3" ? { background: "var(--info-500)" } : {}),
+                }}
+                onClick={() => handlePriorityChange(p)}
+              >
+                {p.toUpperCase()}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Submitter */}
