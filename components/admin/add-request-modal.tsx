@@ -5,6 +5,7 @@ import { Modal } from "@/components/ui/modal";
 import { SelectField, TextareaField } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
+import { triggerAnalysis } from "@/lib/ai/trigger-analysis";
 
 interface AddRequestModalProps {
   open: boolean;
@@ -38,16 +39,21 @@ export function AddRequestModal({ open, onClose, onCreated }: AddRequestModalPro
       return;
     }
 
-    const { error } = await supabase.from("support_requests").insert({
-      user_id: user.id,
-      user_email: user.email!,
-      request_type: requestType,
-      details: details.trim(),
-      screen_path: "/admin",
-    });
+    const { data: inserted, error } = await supabase
+      .from("support_requests")
+      .insert({
+        user_id: user.id,
+        user_email: user.email!,
+        request_type: requestType,
+        details: details.trim(),
+        screen_path: "/admin",
+      })
+      .select("id")
+      .single();
 
     setSaving(false);
-    if (!error) {
+    if (!error && inserted) {
+      triggerAnalysis(inserted.id);
       setRequestType("feature");
       setDetails("");
       onCreated();

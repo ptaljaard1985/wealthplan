@@ -5,6 +5,7 @@ import { Modal } from "@/components/ui/modal";
 import { SelectField, TextareaField, InputField } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
+import { triggerAnalysis } from "@/lib/ai/trigger-analysis";
 
 interface FeedbackModalProps {
   open: boolean;
@@ -39,17 +40,22 @@ export function FeedbackModal({ open, onClose, screenPath }: FeedbackModalProps)
       return;
     }
 
-    const { error } = await supabase.from("support_requests").insert({
-      user_id: user.id,
-      user_email: user.email!,
-      request_type: requestType,
-      details: details.trim(),
-      screen_path: screenPath,
-    });
+    const { data: inserted, error } = await supabase
+      .from("support_requests")
+      .insert({
+        user_id: user.id,
+        user_email: user.email!,
+        request_type: requestType,
+        details: details.trim(),
+        screen_path: screenPath,
+      })
+      .select("id")
+      .single();
 
     setSaving(false);
 
-    if (!error) {
+    if (!error && inserted) {
+      triggerAnalysis(inserted.id);
       setSuccess(true);
       setTimeout(() => {
         setSuccess(false);

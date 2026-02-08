@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Bug, Lightbulb, HelpCircle, ArrowRight, ArrowLeft } from "lucide-react";
+import { Bug, Lightbulb, HelpCircle, ArrowRight, ArrowLeft, Sparkles } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { formatRelativeTime } from "@/lib/formatters";
 import { RequestDetailModal } from "./request-detail-modal";
@@ -84,7 +84,10 @@ export function KanbanBoard({ requests, onRefresh }: KanbanBoardProps) {
                         {typeIcons[req.request_type]}
                         <span style={{ marginLeft: "4px" }}>{req.request_type}</span>
                       </span>
-                      <span style={{ fontSize: "var(--text-xs)", color: "var(--gray-400)" }}>
+                      <span style={{ display: "flex", alignItems: "center", gap: "var(--space-1)", fontSize: "var(--text-xs)", color: "var(--gray-400)" }}>
+                        {req.ai_analysis_status === "done" && (
+                          <Sparkles size={12} style={{ color: "var(--brand-500)" }} />
+                        )}
                         {formatRelativeTime(req.created_at)}
                       </span>
                     </div>

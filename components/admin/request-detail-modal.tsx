@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Sparkles, Loader2 } from "lucide-react";
 import { Modal } from "@/components/ui/modal";
 import { TextareaField } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -31,6 +32,11 @@ export function RequestDetailModal({ open, onClose, request, onRefresh }: Reques
   const [adminNotes, setAdminNotes] = useState(request.admin_notes || "");
   const [saving, setSaving] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [analysing, setAnalysing] = useState(false);
+  const [aiStatus, setAiStatus] = useState(request.ai_analysis_status);
+  const [aiSummary, setAiSummary] = useState(request.ai_summary);
+  const [aiAreas, setAiAreas] = useState(request.ai_affected_areas);
+  const [aiSteps, setAiSteps] = useState(request.ai_implementation);
 
   async function handleSaveNotes() {
     setSaving(true);
@@ -40,6 +46,31 @@ export function RequestDetailModal({ open, onClose, request, onRefresh }: Reques
       .update({ admin_notes: adminNotes.trim() || null, updated_at: new Date().toISOString() })
       .eq("id", request.id);
     setSaving(false);
+    onRefresh();
+  }
+
+  async function handleAnalyse() {
+    setAnalysing(true);
+    setAiStatus("analyzing");
+    try {
+      const res = await fetch("/api/analyse-ticket", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ requestId: request.id }),
+      });
+      if (res.ok) {
+        const { analysis } = await res.json();
+        setAiSummary(analysis.summary);
+        setAiAreas(analysis.affectedAreas);
+        setAiSteps(analysis.implementation);
+        setAiStatus("done");
+      } else {
+        setAiStatus("error");
+      }
+    } catch {
+      setAiStatus("error");
+    }
+    setAnalysing(false);
     onRefresh();
   }
 
@@ -94,6 +125,83 @@ export function RequestDetailModal({ open, onClose, request, onRefresh }: Reques
         <div>
           <p className="label">Details</p>
           <p style={{ fontSize: "var(--text-sm)", whiteSpace: "pre-wrap" }}>{request.details}</p>
+        </div>
+
+        {/* AI Analysis */}
+        <div style={{ borderTop: "1px solid var(--border-default)", paddingTop: "var(--space-4)" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "var(--space-3)" }}>
+            <p className="label" style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", margin: 0 }}>
+              <Sparkles size={14} />
+              AI Analysis
+            </p>
+            <Button
+              variant="secondary"
+              size="sm"
+              loading={analysing}
+              onClick={handleAnalyse}
+            >
+              {aiStatus === "done" ? "Re-analyse" : "Analyse"}
+            </Button>
+          </div>
+
+          {aiStatus === "pending" && (
+            <p style={{ fontSize: "var(--text-sm)", color: "var(--gray-400)", fontStyle: "italic" }}>
+              Analysis not yet run.
+            </p>
+          )}
+
+          {aiStatus === "analyzing" && (
+            <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", fontSize: "var(--text-sm)", color: "var(--gray-500)" }}>
+              <Loader2 size={14} className="spin" />
+              Analysing ticket...
+            </div>
+          )}
+
+          {aiStatus === "error" && (
+            <p style={{ fontSize: "var(--text-sm)", color: "var(--error-500)" }}>
+              Analysis failed. Click &quot;Analyse&quot; to retry.
+            </p>
+          )}
+
+          {aiStatus === "done" && aiSummary && (
+            <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
+              <div>
+                <p style={{ fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--gray-500)", marginBottom: "var(--space-1)" }}>Summary</p>
+                <p style={{ fontSize: "var(--text-sm)" }}>{aiSummary}</p>
+              </div>
+
+              {aiAreas && aiAreas.length > 0 && (
+                <div>
+                  <p style={{ fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--gray-500)", marginBottom: "var(--space-1)" }}>Affected Areas</p>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-1)" }}>
+                    {aiAreas.map((area, i) => (
+                      <span key={i} className="badge" style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-xs)" }}>
+                        {area}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {aiSteps && aiSteps.length > 0 && (
+                <div>
+                  <p style={{ fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--gray-500)", marginBottom: "var(--space-1)" }}>Implementation Steps</p>
+                  <ol style={{ margin: 0, paddingLeft: "var(--space-5)", fontSize: "var(--text-sm)", display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
+                    {aiSteps.map((s) => (
+                      <li key={s.step}>
+                        {s.description}
+                        {s.file && (
+                          <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-xs)", color: "var(--gray-500)", marginLeft: "var(--space-1)" }}>
+                            ({s.file})
+                          </span>
+                        )}
+                      </li>
+                    ))}
+                  </ol>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Admin Notes */}
