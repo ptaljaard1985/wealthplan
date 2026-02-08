@@ -122,6 +122,7 @@ db/
   migration-007-admin-feedback.sql
   migration-008-ai-analysis.sql
   migration-009-ticket-attachments.sql
+  migration-010-ai-prompt.sql
   schema.sql
 ```
 
@@ -200,3 +201,4 @@ db/
 - migration-007-admin-feedback.sql
 - migration-008-ai-analysis.sql
 - migration-009-ticket-attachments.sql
+- migration-010-ai-prompt.sql

@@ -5,6 +5,7 @@ export interface TicketAnalysis {
   summary: string;
   affectedAreas: string[];
   implementation: { step: number; description: string; file?: string }[];
+  prompt: string;
 }
 
 export async function analyseTicket(ticket: {
@@ -32,7 +33,7 @@ export async function analyseTicket(ticket: {
 
   const response = await client.messages.create({
     model: "claude-sonnet-4-20250514",
-    max_tokens: 1024,
+    max_tokens: 2048,
     system: TICKET_ANALYSIS_SYSTEM_PROMPT,
     messages: [{ role: "user", content: userMessage }],
   });

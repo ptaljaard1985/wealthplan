@@ -108,6 +108,7 @@ export async function POST(req: NextRequest) {
         ai_summary: analysis.summary,
         ai_affected_areas: JSON.stringify(analysis.affectedAreas),
         ai_implementation: JSON.stringify(analysis.implementation),
+        ai_prompt: analysis.prompt,
         ai_analysis_status: "done",
       })
       .eq("id", requestId);

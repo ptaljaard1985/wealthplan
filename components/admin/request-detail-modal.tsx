@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Sparkles, Loader2 } from "lucide-react";
+import { Sparkles, Loader2, Copy, Check } from "lucide-react";
 import { Modal } from "@/components/ui/modal";
 import { TextareaField } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -38,6 +38,8 @@ export function RequestDetailModal({ open, onClose, request, onRefresh }: Reques
   const [aiSummary, setAiSummary] = useState(request.ai_summary);
   const [aiAreas, setAiAreas] = useState(request.ai_affected_areas);
   const [aiSteps, setAiSteps] = useState(request.ai_implementation);
+  const [aiPrompt, setAiPrompt] = useState(request.ai_prompt);
+  const [copied, setCopied] = useState(false);
 
   async function handleSaveNotes() {
     setSaving(true);
@@ -64,6 +66,7 @@ export function RequestDetailModal({ open, onClose, request, onRefresh }: Reques
         setAiSummary(analysis.summary);
         setAiAreas(analysis.affectedAreas);
         setAiSteps(analysis.implementation);
+        setAiPrompt(analysis.prompt);
         setAiStatus("done");
       } else {
         setAiStatus("error");
@@ -204,6 +207,24 @@ export function RequestDetailModal({ open, onClose, request, onRefresh }: Reques
                       </li>
                     ))}
                   </ol>
+                </div>
+              )}
+
+              {aiPrompt && (
+                <div>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => {
+                      navigator.clipboard.writeText(aiPrompt);
+                      setCopied(true);
+                      setTimeout(() => setCopied(false), 2000);
+                    }}
+                    style={{ display: "inline-flex", alignItems: "center", gap: "var(--space-2)" }}
+                  >
+                    {copied ? <Check size={14} /> : <Copy size={14} />}
+                    {copied ? "Copied!" : "Copy prompt for Claude Code"}
+                  </Button>
                 </div>
               )}
             </div>

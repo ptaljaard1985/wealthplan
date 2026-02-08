@@ -130,6 +130,7 @@ export interface SupportRequest {
   ai_summary: string | null;
   ai_affected_areas: string[] | null;
   ai_implementation: { step: number; description: string; file?: string }[] | null;
+  ai_prompt: string | null;
   ai_analysis_status: "pending" | "analyzing" | "done" | "error";
   created_at: string;
   updated_at: string;
