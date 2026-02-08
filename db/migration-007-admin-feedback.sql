@@ -14,6 +14,18 @@ create table if not exists public.user_profiles (
 -- RLS
 alter table public.user_profiles enable row level security;
 
+-- Helper: check admin status without RLS recursion
+create or replace function public.is_admin()
+returns boolean
+language sql
+security definer set search_path = ''
+as $$
+  select coalesce(
+    (select is_admin from public.user_profiles where id = auth.uid()),
+    false
+  );
+$$;
+
 -- Users can read their own profile
 create policy "Users read own profile"
   on public.user_profiles for select
@@ -27,12 +39,7 @@ create policy "Users update own profile"
 -- Admins can read all profiles
 create policy "Admins read all profiles"
   on public.user_profiles for select
-  using (
-    exists (
-      select 1 from public.user_profiles
-      where id = auth.uid() and is_admin = true
-    )
-  );
+  using (public.is_admin());
 
 -- Auto-create profile on signup
 create or replace function public.handle_new_user()
@@ -91,32 +98,17 @@ create policy "Users read own requests"
 -- Admins can read all requests
 create policy "Admins read all requests"
   on public.support_requests for select
-  using (
-    exists (
-      select 1 from public.user_profiles
-      where id = auth.uid() and is_admin = true
-    )
-  );
+  using (public.is_admin());
 
 -- Admins can update all requests
 create policy "Admins update all requests"
   on public.support_requests for update
-  using (
-    exists (
-      select 1 from public.user_profiles
-      where id = auth.uid() and is_admin = true
-    )
-  );
+  using (public.is_admin());
 
 -- Admins can delete requests
 create policy "Admins delete requests"
   on public.support_requests for delete
-  using (
-    exists (
-      select 1 from public.user_profiles
-      where id = auth.uid() and is_admin = true
-    )
-  );
+  using (public.is_admin());
 
 -- ── Seed: Mark Pierre as admin ────────────────────────────────
 ---Run after migration. Replace the UUID if needed, or use email match:

@@ -3,7 +3,9 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { PageHeader } from "@/components/ui/page-header";
+import { Button } from "@/components/ui/button";
 import { KanbanBoard } from "@/components/admin/kanban-board";
+import { AddRequestModal } from "@/components/admin/add-request-modal";
 import { useAdmin } from "@/lib/hooks/use-admin";
 import { createClient } from "@/lib/supabase/client";
 import type { SupportRequest } from "@/lib/types/database";
@@ -13,6 +15,7 @@ export default function AdminPage() {
   const router = useRouter();
   const [requests, setRequests] = useState<SupportRequest[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showAdd, setShowAdd] = useState(false);
 
   const fetchRequests = useCallback(async () => {
     const supabase = createClient();
@@ -49,8 +52,18 @@ export default function AdminPage() {
       <PageHeader
         title="Admin"
         subtitle={`${requests.length} support request${requests.length !== 1 ? "s" : ""}`}
+        action={
+          <Button variant="primary" onClick={() => setShowAdd(true)}>
+            Add Request
+          </Button>
+        }
       />
       <KanbanBoard requests={requests} onRefresh={fetchRequests} />
+      <AddRequestModal
+        open={showAdd}
+        onClose={() => setShowAdd(false)}
+        onCreated={fetchRequests}
+      />
     </>
   );
 }
