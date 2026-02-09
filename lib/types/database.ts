@@ -43,6 +43,10 @@ export interface Account {
   rental_end_year: number | null;
   planned_sale_year: number | null;
   sale_inclusion_pct: number | null;
+  /* CGT fields */
+  tax_base_cost: number | null;
+  acquisition_date: string | null;
+  cgt_exemption_type: "none" | "primary_residence";
 }
 
 export interface Valuation {

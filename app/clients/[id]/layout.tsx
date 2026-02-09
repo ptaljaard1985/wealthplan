@@ -176,6 +176,8 @@ export default function ClientDetailLayout({ children }: { children: React.React
           saleInclusionPct: acc.sale_inclusion_pct ? Number(acc.sale_inclusion_pct) : undefined,
           isJoint: acc.is_joint ?? false,
           memberId: m.id,
+          taxBaseCost: acc.tax_base_cost ? Number(acc.tax_base_cost) : null,
+          cgtExemptionType: (acc.cgt_exemption_type as "none" | "primary_residence") || "none",
         });
       }
       for (const inc of m.income) {

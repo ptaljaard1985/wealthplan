@@ -1,6 +1,6 @@
 /* ── Projection Engine V2 — 7-Phase Year Loop ────────── */
 
-import { calculateIncomeTax } from "@/lib/tax";
+import { calculateIncomeTax, calculateCGT, inflateCGTExclusion } from "@/lib/tax";
 import { compoundGrowth, getCapitalExpenseForYear, distributeToAccounts } from "./helpers";
 import { solveWithdrawals } from "./withdrawal-solver";
 import type {
@@ -45,6 +45,14 @@ export function runProjectionEngine(
 
   for (const acc of accounts) {
     accountValues[acc.accountId] = acc.currentValue;
+  }
+
+  // Initialize cost basis for CGT-eligible accounts
+  const costBasis: Record<string, number> = {};
+  for (const acc of accounts) {
+    if (acc.accountType === "non-retirement" || acc.accountType === "property") {
+      costBasis[acc.accountId] = acc.taxBaseCost ?? (acc.currentValue * 0.5);
+    }
   }
 
   // Build account owner map (accountId → memberId)
@@ -98,6 +106,7 @@ export function runProjectionEngine(
     // ══════════════════════════════════════════════════════
     let propertySaleProceeds = 0;
     const contributionsByAccount: Record<string, number> = {};
+    const propertySaleEvents: { accountId: string; capitalGain: number; memberId?: string; isPrimaryResidence: boolean }[] = [];
 
     for (const acc of accounts) {
       if (soldProperties.has(acc.accountId)) {
@@ -114,9 +123,17 @@ export function runProjectionEngine(
         // Check for sale event
         if (acc.plannedSaleYear && year === acc.plannedSaleYear) {
           const saleValue = accountValues[acc.accountId];
+          const gain = Math.max(0, saleValue - (costBasis[acc.accountId] ?? 0));
+          propertySaleEvents.push({
+            accountId: acc.accountId,
+            capitalGain: gain,
+            memberId: accountOwners[acc.accountId],
+            isPrimaryResidence: acc.cgtExemptionType === "primary_residence",
+          });
           const inclusionPct = (acc.saleInclusionPct ?? 100) / 100;
           propertySaleProceeds += saleValue * inclusionPct;
           accountValues[acc.accountId] = 0;
+          costBasis[acc.accountId] = 0;
           soldProperties.add(acc.accountId);
         }
       } else {
@@ -132,6 +149,11 @@ export function runProjectionEngine(
           monthlyContrib,
           acc.annualReturnPct
         );
+
+        // Non-retirement contributions increase cost basis
+        if (acc.accountType === "non-retirement") {
+          costBasis[acc.accountId] = (costBasis[acc.accountId] ?? 0) + monthlyContrib * 12;
+        }
       }
     }
 
@@ -201,6 +223,8 @@ export function runProjectionEngine(
     let memberTax: MemberYearTax[] = [];
     let householdTax = 0;
     let netCashFlow: number;
+    let propertySaleCGTTotal = 0;
+    let cgtExclusionUsed: Record<string, number> = {};
 
     if (!isLegacyMode) {
       // Track income per member
@@ -278,10 +302,39 @@ export function runProjectionEngine(
           effectiveRate: taxResult.effectiveRate,
           marginalRate: taxResult.marginalRate,
           monthlyTax: taxResult.monthlyTax,
+          cgtPayable: 0,
+          capitalGains: 0,
         };
       });
 
       householdTax = memberTax.reduce((s, t) => s + t.netTax, 0);
+
+      // ── Phase 4b: CGT from property sales ──
+      cgtExclusionUsed = {};
+      propertySaleCGTTotal = 0;
+
+      for (const sale of propertySaleEvents) {
+        if (!sale.memberId) continue;
+        const mt = memberTax.find((t) => t.memberId === sale.memberId);
+        const marginalRate = mt?.marginalRate ?? 36;
+        const usedSoFar = cgtExclusionUsed[sale.memberId] ?? 0;
+        const inflatedExclusion = inflateCGTExclusion(yearsFromNow, settings.bracketInflationRatePct / 100);
+        const remaining = Math.max(0, inflatedExclusion - usedSoFar);
+
+        const cgtResult = calculateCGT(sale.capitalGain, marginalRate, {
+          remainingAnnualExclusion: remaining,
+          primaryResidenceExclusion: sale.isPrimaryResidence ? 2_000_000 : 0,
+        });
+
+        cgtExclusionUsed[sale.memberId] = usedSoFar + cgtResult.exclusionUsed;
+        propertySaleCGTTotal += cgtResult.tax;
+        if (mt) {
+          mt.cgtPayable += cgtResult.tax;
+          mt.capitalGains += sale.capitalGain;
+        }
+      }
+      householdTax += propertySaleCGTTotal;
+
       netCashFlow = totalIncome - totalExpenses - capitalExpenseTotal - householdTax;
     } else {
       // Legacy mode: no tax calculation
@@ -297,6 +350,7 @@ export function runProjectionEngine(
     let deficit = 0;
     let depletedAccountIds: string[] = [];
     let portfolioDepleted = false;
+    let withdrawalCGT = 0;
 
     if (!isLegacyMode && isPartiallyRetired && netCashFlow < 0) {
       deficit = Math.abs(netCashFlow);
@@ -320,16 +374,20 @@ export function runProjectionEngine(
         bracketInflationRatePct: settings.bracketInflationRatePct,
         accountOwners,
         soldProperties,
+        costBasis,
+        cgtExclusionUsedByMember: cgtExclusionUsed,
       });
 
       withdrawalDetails = result.withdrawals;
       depletedAccountIds = result.depletedAccountIds;
       portfolioDepleted = result.portfolioDepleted;
 
-      // Update tax with additional tax from withdrawals
-      if (result.additionalTax > 0) {
-        householdTax += result.additionalTax;
-        netCashFlow -= result.additionalTax;
+      // Update tax with additional tax from withdrawals (income tax + CGT)
+      withdrawalCGT = result.additionalCGT;
+      const totalAdditionalFromSolver = result.additionalTax + result.additionalCGT;
+      if (totalAdditionalFromSolver > 0) {
+        householdTax += totalAdditionalFromSolver;
+        netCashFlow -= totalAdditionalFromSolver;
       }
     }
 
@@ -399,6 +457,8 @@ export function runProjectionEngine(
       jointRentalIncome: Math.round(jointRentalIncomeTotal),
       memberTax,
       householdTax: Math.round(householdTax),
+      householdCGT: Math.round(propertySaleCGTTotal + withdrawalCGT),
+      propertySaleCGT: Math.round(propertySaleCGTTotal),
       accountDetails,
       withdrawalDetails,
       grossCashFlow: Math.round(grossCashFlow),

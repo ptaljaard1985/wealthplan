@@ -127,6 +127,7 @@ db/
   migration-010-ai-prompt.sql
   migration-011-priority.sql
   migration-012-fix-jsonb-encoding.sql
+  migration-013-cgt.sql
   schema.sql
 ```
 
@@ -168,7 +169,7 @@ db/
 ## Key TypeScript Interfaces
 - lib/types/database.ts: ClientFamily { id, family_name, inflation_rate_pct, reinvest_surplus_pre_retirement, reinvest_surplus_post_retirement, bracket_inflation_rate_pct, notes, user_id, created_at, updated_at }
 - lib/types/database.ts: FamilyMember { id, family_id, first_name, last_name, email, phone, date_of_birth, retirement_age, notes, created_at, updated_at }
-- lib/types/database.ts: Account { id, member_id, account_name, account_type, current_value, monthly_contribution, expected_return_pct, notes, created_at, updated_at, is_joint, rental_income_monthly, rental_start_year, rental_end_year, planned_sale_year, sale_inclusion_pct }
+- lib/types/database.ts: Account { id, member_id, account_name, account_type, current_value, monthly_contribution, expected_return_pct, notes, created_at, updated_at, is_joint, rental_income_monthly, rental_start_year, rental_end_year, planned_sale_year, sale_inclusion_pct, tax_base_cost, acquisition_date, cgt_exemption_type }
 - lib/types/database.ts: Valuation { id, account_id, valuation_date, value, notes, created_at }
 - lib/types/database.ts: Income { id, member_id, label, category, monthly_amount, taxable_pct, start_year, end_year, notes, created_at }
 - lib/types/database.ts: Expense { id, family_id, label, category, monthly_amount, start_year, end_year, notes, created_at }
@@ -184,17 +185,17 @@ db/
 - lib/types/database.ts: ClientFamilyWithMembers { family_members }
 - lib/types/database.ts: ClientFamilySummary { family_members, member_count, total_value }
 - lib/engines/types.ts: MemberConfig { memberId, name, dateOfBirth, retirementAge, retirementYear }
-- lib/engines/types.ts: AccountProjectionInput { accountId, accountName, memberName, accountType, currentValue, monthlyContribution, annualReturnPct, isJoint, memberId, rentalIncomeMonthly, rentalStartYear, rentalEndYear, plannedSaleYear, saleInclusionPct }
+- lib/engines/types.ts: AccountProjectionInput { accountId, accountName, memberName, accountType, currentValue, monthlyContribution, annualReturnPct, isJoint, memberId, rentalIncomeMonthly, rentalStartYear, rentalEndYear, plannedSaleYear, saleInclusionPct, taxBaseCost, cgtExemptionType }
 - lib/engines/types.ts: IncomeInput { label, memberName, monthlyAmount, taxablePct, startYear, endYear, memberId, category }
 - lib/engines/types.ts: ExpenseInput { label, monthlyAmount, startYear, endYear }
 - lib/engines/types.ts: CapitalExpenseInput { label, amount, startYear, recurrenceIntervalYears, recurrenceCount }
 - lib/engines/types.ts: WithdrawalOrderEntry { accountId, priority }
 - lib/engines/types.ts: FamilySettings { reinvestSurplusPreRetirement, reinvestSurplusPostRetirement, bracketInflationRatePct }
 - lib/engines/types.ts: ProjectionConfig { accounts, income, expenses, capitalExpenses, currentYear, targetYear, inflationRatePct, members, withdrawalOrder, settings }
-- lib/engines/types.ts: MemberYearTax { memberId, name, age, grossIncome, taxableIncome, netTax, effectiveRate, marginalRate, monthlyTax }
+- lib/engines/types.ts: MemberYearTax { memberId, name, age, grossIncome, taxableIncome, netTax, effectiveRate, marginalRate, monthlyTax, cgtPayable, capitalGains }
 - lib/engines/types.ts: AccountYearDetail { accountId, accountName, accountType, opening, contributions, growth, withdrawal, closing }
-- lib/engines/types.ts: WithdrawalDetail { accountId, accountName, accountType, amount, isTaxable }
-- lib/engines/types.ts: ProjectionYearResult { year, total, accounts, totalIncome, totalExpenses, capitalExpenseTotal, netCashFlow, propertySaleProceeds, rentalIncome, jointRentalIncome, memberTax, householdTax, accountDetails, withdrawalDetails, grossCashFlow, deficit, surplusReinvested, isFullyRetired, isPartiallyRetired, retiredMemberIds, depletedAccountIds, portfolioDepleted }
+- lib/engines/types.ts: WithdrawalDetail { accountId, accountName, accountType, amount, isTaxable, capitalGain, cgt }
+- lib/engines/types.ts: ProjectionYearResult { year, total, accounts, totalIncome, totalExpenses, capitalExpenseTotal, netCashFlow, propertySaleProceeds, rentalIncome, jointRentalIncome, memberTax, householdTax, householdCGT, propertySaleCGT, accountDetails, withdrawalDetails, grossCashFlow, deficit, surplusReinvested, isFullyRetired, isPartiallyRetired, retiredMemberIds, depletedAccountIds, portfolioDepleted }
 
 ## Migrations
 - migration-002-property.sql
@@ -208,3 +209,4 @@ db/
 - migration-010-ai-prompt.sql
 - migration-011-priority.sql
 - migration-012-fix-jsonb-encoding.sql
+- migration-013-cgt.sql

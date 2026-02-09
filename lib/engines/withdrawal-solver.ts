@@ -13,7 +13,7 @@
  * Convergence is fast because marginal rate is bounded at 45%.
  */
 
-import { calculateIncomeTax } from "@/lib/tax";
+import { calculateIncomeTax, calculateCGT, inflateCGTExclusion } from "@/lib/tax";
 import type {
   AccountProjectionInput,
   WithdrawalOrderEntry,
@@ -45,6 +45,10 @@ export interface WithdrawalSolverInput {
   accountOwners: Record<string, string>;
   /** Set of accounts already depleted */
   soldProperties: Set<string>;
+  /** Cost basis for CGT-eligible accounts — mutated in-place */
+  costBasis: Record<string, number>;
+  /** CGT annual exclusion already consumed by property sales (memberId → amount) */
+  cgtExclusionUsedByMember: Record<string, number>;
 }
 
 export interface WithdrawalSolverResult {
@@ -58,6 +62,8 @@ export interface WithdrawalSolverResult {
   depletedAccountIds: string[];
   /** True if all accounts depleted and deficit still not covered */
   portfolioDepleted: boolean;
+  /** Total CGT from non-retirement withdrawals */
+  additionalCGT: number;
 }
 
 /**
@@ -105,7 +111,8 @@ function buildOrderedAccounts(
 function withdrawPass(
   amount: number,
   orderedAccounts: AccountProjectionInput[],
-  accountValues: Record<string, number>
+  accountValues: Record<string, number>,
+  costBasis: Record<string, number>
 ): { withdrawn: number; details: WithdrawalDetail[] } {
   let remaining = amount;
   const details: WithdrawalDetail[] = [];
@@ -119,12 +126,24 @@ function withdrawPass(
     accountValues[acc.accountId] -= take;
     remaining -= take;
 
+    let capitalGain: number | undefined;
+    if (acc.accountType === "non-retirement") {
+      const cb = costBasis[acc.accountId] ?? 0;
+      const gainRatio = available > 0 ? Math.max(0, 1 - cb / available) : 0;
+      capitalGain = take * gainRatio;
+      // Reduce cost basis proportionally
+      if (available > 0) {
+        costBasis[acc.accountId] = Math.max(0, cb - cb * (take / available));
+      }
+    }
+
     details.push({
       accountId: acc.accountId,
       accountName: acc.accountName,
       accountType: acc.accountType,
       amount: take,
       isTaxable: acc.accountType === "retirement",
+      capitalGain,
     });
   }
 
@@ -143,6 +162,8 @@ export function solveWithdrawals(input: WithdrawalSolverInput): WithdrawalSolver
     bracketInflationRatePct,
     accountOwners,
     soldProperties,
+    costBasis,
+    cgtExclusionUsedByMember,
   } = input;
 
   if (deficit <= 0) {
@@ -152,24 +173,29 @@ export function solveWithdrawals(input: WithdrawalSolverInput): WithdrawalSolver
       totalWithdrawn: 0,
       depletedAccountIds: [],
       portfolioDepleted: false,
+      additionalCGT: 0,
     };
   }
 
-  // Snapshot account values so we can reset between iterations
+  // Snapshot account values and cost basis so we can reset between iterations
   const originalValues: Record<string, number> = {};
   for (const id of Object.keys(accountValues)) {
     originalValues[id] = accountValues[id];
   }
+  const originalCostBasis: Record<string, number> = { ...costBasis };
 
-  let currentDeficit = deficit;
   let totalAdditionalTax = 0;
+  let totalAdditionalCGT = 0;
   let finalDetails: WithdrawalDetail[] = [];
   let portfolioDepleted = false;
 
   for (let iter = 0; iter < MAX_ITERATIONS; iter++) {
-    // Reset account values to pre-withdrawal state for this iteration
+    // Reset account values and cost basis to pre-withdrawal state for this iteration
     for (const id of Object.keys(originalValues)) {
       accountValues[id] = originalValues[id];
+    }
+    for (const id of Object.keys(originalCostBasis)) {
+      costBasis[id] = originalCostBasis[id];
     }
 
     const orderedAccounts = buildOrderedAccounts(
@@ -179,8 +205,8 @@ export function solveWithdrawals(input: WithdrawalSolverInput): WithdrawalSolver
       soldProperties
     );
 
-    const totalNeeded = deficit + totalAdditionalTax;
-    const { withdrawn, details } = withdrawPass(totalNeeded, orderedAccounts, accountValues);
+    const totalNeeded = deficit + totalAdditionalTax + totalAdditionalCGT;
+    const { withdrawn, details } = withdrawPass(totalNeeded, orderedAccounts, accountValues, costBasis);
     finalDetails = details;
 
     if (withdrawn < totalNeeded) {
@@ -199,8 +225,9 @@ export function solveWithdrawals(input: WithdrawalSolverInput): WithdrawalSolver
       }
     }
 
-    // Compute new tax with retirement withdrawals added to income
+    // Compute new income tax with retirement withdrawals added
     let newAdditionalTax = 0;
+    const newMarginalRates: Record<string, number> = {};
     for (const [memberId, withdrawalAmount] of Object.entries(retirementWithdrawalsByMember)) {
       const baseTaxable = baseTaxableByMember[memberId] ?? 0;
       const age = memberAges[memberId] ?? 65;
@@ -218,12 +245,47 @@ export function solveWithdrawals(input: WithdrawalSolverInput): WithdrawalSolver
         bracketInflationRatePct / 100
       );
       newAdditionalTax += newTax.netTax - baseTax.netTax;
+      newMarginalRates[memberId] = newTax.marginalRate;
     }
 
-    const delta = Math.abs(newAdditionalTax - totalAdditionalTax);
-    totalAdditionalTax = newAdditionalTax;
+    // Calculate CGT from non-retirement withdrawals
+    const nonRetGainsByMember: Record<string, number> = {};
+    for (const d of details) {
+      if (d.capitalGain && d.capitalGain > 0) {
+        const memberId = accountOwners[d.accountId];
+        if (memberId) {
+          nonRetGainsByMember[memberId] = (nonRetGainsByMember[memberId] ?? 0) + d.capitalGain;
+        }
+      }
+    }
 
-    if (delta < CONVERGENCE_THRESHOLD || portfolioDepleted) {
+    let newCGT = 0;
+    for (const [memberId, totalGain] of Object.entries(nonRetGainsByMember)) {
+      const usedFromPhase4 = cgtExclusionUsedByMember[memberId] ?? 0;
+      const inflatedExcl = inflateCGTExclusion(yearsFromBase, bracketInflationRatePct / 100);
+      const remaining = Math.max(0, inflatedExcl - usedFromPhase4);
+      // Use marginal rate including retirement withdrawal income if available
+      const baseTaxable = baseTaxableByMember[memberId] ?? 0;
+      const age = memberAges[memberId] ?? 65;
+      const retWithdrawal = retirementWithdrawalsByMember[memberId] ?? 0;
+      const taxResult = calculateIncomeTax(
+        baseTaxable + retWithdrawal,
+        age,
+        yearsFromBase,
+        bracketInflationRatePct / 100
+      );
+      const cgtResult = calculateCGT(totalGain, taxResult.marginalRate, {
+        remainingAnnualExclusion: remaining,
+      });
+      newCGT += cgtResult.tax;
+    }
+
+    const deltaIncomeTax = Math.abs(newAdditionalTax - totalAdditionalTax);
+    const deltaCGT = Math.abs(newCGT - totalAdditionalCGT);
+    totalAdditionalTax = newAdditionalTax;
+    totalAdditionalCGT = newCGT;
+
+    if ((deltaIncomeTax + deltaCGT) < CONVERGENCE_THRESHOLD || portfolioDepleted) {
       break;
     }
   }
@@ -240,14 +302,12 @@ export function solveWithdrawals(input: WithdrawalSolverInput): WithdrawalSolver
     }
   }
 
-  // Update original values snapshot to final post-withdrawal state
-  // (accountValues already reflects the final state from the last pass)
-
   return {
     withdrawals: finalDetails,
     additionalTax: Math.round(totalAdditionalTax),
     totalWithdrawn: finalDetails.reduce((s, d) => s + d.amount, 0),
     depletedAccountIds,
     portfolioDepleted,
+    additionalCGT: Math.round(totalAdditionalCGT),
   };
 }

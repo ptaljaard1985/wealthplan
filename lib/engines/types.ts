@@ -28,6 +28,9 @@ export interface AccountProjectionInput {
   rentalEndYear?: number | null;
   plannedSaleYear?: number | null;
   saleInclusionPct?: number;
+  /* CGT */
+  taxBaseCost?: number | null;
+  cgtExemptionType?: "none" | "primary_residence";
 }
 
 export interface IncomeInput {
@@ -94,6 +97,8 @@ export interface MemberYearTax {
   effectiveRate: number;
   marginalRate: number;
   monthlyTax: number;
+  cgtPayable: number;
+  capitalGains: number;
 }
 
 export interface AccountYearDetail {
@@ -114,6 +119,8 @@ export interface WithdrawalDetail {
   amount: number;
   /** Whether this withdrawal creates additional taxable income */
   isTaxable: boolean;
+  capitalGain?: number;
+  cgt?: number;
 }
 
 export interface ProjectionYearResult {
@@ -131,6 +138,8 @@ export interface ProjectionYearResult {
   /* ── V2 enriched fields ── */
   memberTax: MemberYearTax[];
   householdTax: number;
+  householdCGT: number;
+  propertySaleCGT: number;
   accountDetails: AccountYearDetail[];
   withdrawalDetails: WithdrawalDetail[];
   grossCashFlow: number;

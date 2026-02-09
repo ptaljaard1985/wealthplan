@@ -161,6 +161,8 @@ export default function ScenariosPage() {
           monthlyContribution: Number(acc.monthly_contribution),
           annualReturnPct: Number(acc.expected_return_pct),
           memberId: m.id,
+          taxBaseCost: acc.tax_base_cost ? Number(acc.tax_base_cost) : null,
+          cgtExemptionType: (acc.cgt_exemption_type as "none" | "primary_residence") || "none",
         });
       }
 

@@ -44,6 +44,11 @@ export function AccountForm({ open, onClose, onSaved, members, account, defaultM
   const [saving, setSaving] = useState(false);
   const [isJoint, setIsJoint] = useState(false);
 
+  // CGT fields
+  const [taxBaseCost, setTaxBaseCost] = useState("");
+  const [acquisitionDate, setAcquisitionDate] = useState("");
+  const [cgtExemptionType, setCgtExemptionType] = useState<"none" | "primary_residence">("none");
+
   // Property-specific fields
   const [rentalIncome, setRentalIncome] = useState("");
   const [rentalStartAge, setRentalStartAge] = useState("");
@@ -71,6 +76,11 @@ export function AccountForm({ open, onClose, onSaved, members, account, defaultM
       setExpectedReturn(String(account?.expected_return_pct ?? "8.00"));
       setNotes(account?.notes || "");
       setIsJoint(account?.is_joint ?? false);
+
+      // CGT fields
+      setTaxBaseCost(account?.tax_base_cost ? String(account.tax_base_cost) : "");
+      setAcquisitionDate(account?.acquisition_date || "");
+      setCgtExemptionType(account?.cgt_exemption_type || "none");
 
       // Property fields
       setRentalIncome(account?.rental_income_monthly ? String(account.rental_income_monthly) : "");
@@ -132,6 +142,11 @@ export function AccountForm({ open, onClose, onSaved, members, account, defaultM
       rental_end_year: isProperty ? rentalEndYear : null,
       planned_sale_year: isProperty ? plannedSaleYear : null,
       sale_inclusion_pct: isProperty ? (parseFloat(saleInclusionPct) || 100) : null,
+      tax_base_cost: (accountType === "non-retirement" || accountType === "property") && taxBaseCost
+        ? parseFloat(taxBaseCost) : null,
+      acquisition_date: (accountType === "non-retirement" || accountType === "property") && acquisitionDate
+        ? acquisitionDate : null,
+      cgt_exemption_type: accountType === "property" ? cgtExemptionType : "none",
     };
 
     if (isEdit && account) {
@@ -279,6 +294,43 @@ export function AccountForm({ open, onClose, onSaved, members, account, defaultM
               </div>
             </div>
           </>
+        )}
+
+        {/* CGT fields */}
+        {(accountType === "non-retirement" || accountType === "property") && (
+          <div style={{ borderTop: "1px solid var(--border-default)", paddingTop: "var(--space-4)" }}>
+            <p style={{ fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--gray-700)", margin: "0 0 var(--space-3) 0" }}>
+              Capital Gains Tax
+            </p>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--space-4)" }}>
+              <CurrencyInput
+                label="Tax Base Cost (R)"
+                id="account-base-cost"
+                value={taxBaseCost}
+                onChange={setTaxBaseCost}
+              />
+              <InputField
+                label="Acquisition Date"
+                id="account-acquisition-date"
+                type="date"
+                value={acquisitionDate}
+                onChange={(e) => setAcquisitionDate(e.target.value)}
+              />
+            </div>
+            <p style={{ fontSize: "var(--text-xs)", color: "var(--gray-500)", margin: "var(--space-2) 0 0 0" }}>
+              If unknown, the engine uses 50% of current value as a conservative estimate.
+            </p>
+            {accountType === "property" && (
+              <label style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", fontSize: "var(--text-sm)", color: "var(--gray-600)", cursor: "pointer", marginTop: "var(--space-3)" }}>
+                <input
+                  type="checkbox"
+                  checked={cgtExemptionType === "primary_residence"}
+                  onChange={(e) => setCgtExemptionType(e.target.checked ? "primary_residence" : "none")}
+                />
+                Primary residence (R2M CGT exemption)
+              </label>
+            )}
+          </div>
         )}
 
         <TextareaField

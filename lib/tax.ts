@@ -40,6 +40,7 @@ const TAX_THRESHOLDS_2025_2026 = {
 const CGT_ANNUAL_EXCLUSION = 40000;
 const CGT_INCLUSION_RATE = 0.4;
 const CGT_DEATH_EXCLUSION = 300000;
+const CGT_PRIMARY_RESIDENCE_EXCLUSION = 2_000_000;
 
 /* ── Inflate brackets for future years ────────────────── */
 
@@ -68,6 +69,10 @@ export function inflateRebates(
     secondary: Math.round(rebates.secondary * factor),
     tertiary: Math.round(rebates.tertiary * factor),
   };
+}
+
+export function inflateCGTExclusion(years: number, inflationRate: number = 0.02): number {
+  return Math.round(CGT_ANNUAL_EXCLUSION * Math.pow(1 + inflationRate, years));
 }
 
 /* ── Income tax calculation ───────────────────────────── */
@@ -169,28 +174,54 @@ export interface CGTResult {
   marginalRate: number;
   tax: number;
   effectiveRate: number;
+  exclusionUsed: number;
+}
+
+export interface CGTOptions {
+  isDeathEvent?: boolean;
+  remainingAnnualExclusion?: number;
+  primaryResidenceExclusion?: number;
 }
 
 export function calculateCGT(
   capitalGain: number,
   marginalTaxRate: number,
-  isDeathEvent: boolean = false
+  optionsOrIsDeathEvent?: CGTOptions | boolean
 ): CGTResult {
-  const exclusion = isDeathEvent ? CGT_DEATH_EXCLUSION : CGT_ANNUAL_EXCLUSION;
-  const netGain = Math.max(0, capitalGain - exclusion);
+  // Backward compat: old callers pass boolean as 3rd arg
+  const options: CGTOptions =
+    typeof optionsOrIsDeathEvent === "boolean"
+      ? { isDeathEvent: optionsOrIsDeathEvent }
+      : optionsOrIsDeathEvent ?? {};
+
+  const { isDeathEvent = false, primaryResidenceExclusion = 0 } = options;
+
+  // Apply primary residence exclusion first
+  let remainingGain = Math.max(0, capitalGain - primaryResidenceExclusion);
+
+  // Annual exclusion (use provided remaining, or full exclusion)
+  const fullExclusion = isDeathEvent ? CGT_DEATH_EXCLUSION : CGT_ANNUAL_EXCLUSION;
+  const annualExclusion =
+    options.remainingAnnualExclusion !== undefined
+      ? options.remainingAnnualExclusion
+      : fullExclusion;
+
+  const exclusionApplied = Math.min(annualExclusion, remainingGain);
+  const netGain = Math.max(0, remainingGain - exclusionApplied);
   const taxableGain = netGain * CGT_INCLUSION_RATE;
   const tax = taxableGain * (marginalTaxRate / 100);
   const effectiveRate = capitalGain > 0 ? (tax / capitalGain) * 100 : 0;
 
   return {
     capitalGain,
-    annualExclusion: exclusion,
+    annualExclusion: exclusionApplied,
     netGain,
     inclusionRate: CGT_INCLUSION_RATE * 100,
     taxableGain: Math.round(taxableGain),
     marginalRate: marginalTaxRate,
     tax: Math.round(tax),
     effectiveRate: Math.round(effectiveRate * 100) / 100,
+    exclusionUsed: exclusionApplied,
   };
 }
 
@@ -234,4 +265,5 @@ export const CGT_CONSTANTS = {
   deathExclusion: CGT_DEATH_EXCLUSION,
   inclusionRate: CGT_INCLUSION_RATE,
   maxEffectiveRate: 18,
+  primaryResidenceExclusion: CGT_PRIMARY_RESIDENCE_EXCLUSION,
 };

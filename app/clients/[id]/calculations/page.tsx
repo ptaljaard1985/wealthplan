@@ -83,6 +83,7 @@ interface CalcRow {
   capitalExpenseItems: CapexDetail[];
   memberTax: MemberTax[];
   householdTax: number;
+  householdCGT: number;
   householdEffRate: number;
   netCashFlow: number;
   propertySaleProceeds: number;
@@ -162,6 +163,8 @@ export default function CalculationsPage() {
           saleInclusionPct: acc.sale_inclusion_pct ? Number(acc.sale_inclusion_pct) : undefined,
           isJoint: acc.is_joint ?? false,
           memberId: m.id,
+          taxBaseCost: acc.tax_base_cost ? Number(acc.tax_base_cost) : null,
+          cgtExemptionType: (acc.cgt_exemption_type as "none" | "primary_residence") || "none",
         };
         allAccounts.push(input);
         accountMeta[acc.id] = {
@@ -353,6 +356,7 @@ export default function CalculationsPage() {
         capitalExpenseItems,
         memberTax,
         householdTax,
+        householdCGT: row.householdCGT,
         householdEffRate: Math.round(householdEffRate * 100) / 100,
         netCashFlow: row.netCashFlow,
         propertySaleProceeds: row.propertySaleProceeds,
@@ -657,8 +661,14 @@ export default function CalculationsPage() {
                         </tr>
                         <tr>
                           <td>Less: Income Tax</td>
-                          <td style={{ textAlign: "right", color: "var(--error-600)" }}>-{formatCurrency(row.householdTax)}</td>
+                          <td style={{ textAlign: "right", color: "var(--error-600)" }}>-{formatCurrency(row.householdTax - row.householdCGT)}</td>
                         </tr>
+                        {row.householdCGT > 0 && (
+                          <tr>
+                            <td>Less: Capital Gains Tax</td>
+                            <td style={{ textAlign: "right", color: "var(--error-600)" }}>-{formatCurrency(row.householdCGT)}</td>
+                          </tr>
+                        )}
                         <tr style={{ borderTop: "1px solid var(--border-default)" }}>
                           <td style={{ fontWeight: 600 }}>Net After-Tax Income</td>
                           <td style={{ textAlign: "right", fontWeight: 600 }}>{formatCurrency(row.grossIncome - row.householdTax)}</td>
