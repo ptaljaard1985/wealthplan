@@ -5,6 +5,7 @@
 app/
   (main)/
     admin/
+      error.tsx
       page.tsx
     dashboard/
       page.tsx
@@ -87,6 +88,7 @@ components/
     card.tsx
     currency-input.tsx
     empty-state.tsx
+    error-boundary.tsx
     input.tsx
     modal.tsx
     page-header.tsx
@@ -124,6 +126,7 @@ db/
   migration-009-ticket-attachments.sql
   migration-010-ai-prompt.sql
   migration-011-priority.sql
+  migration-012-fix-jsonb-encoding.sql
   schema.sql
 ```
 
@@ -204,3 +207,4 @@ db/
 - migration-009-ticket-attachments.sql
 - migration-010-ai-prompt.sql
 - migration-011-priority.sql
+- migration-012-fix-jsonb-encoding.sql

@@ -236,7 +236,7 @@ export function RequestDetailModal({ open, onClose, request, onRefresh }: Reques
                 <div>
                   <p style={{ fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--gray-500)", marginBottom: "var(--space-1)" }}>Affected Areas</p>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-1)" }}>
-                    {aiAreas.map((area, i) => (
+                    {(Array.isArray(aiAreas) ? aiAreas : []).map((area, i) => (
                       <span key={i} className="badge" style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-xs)" }}>
                         {area}
                       </span>
@@ -249,7 +249,7 @@ export function RequestDetailModal({ open, onClose, request, onRefresh }: Reques
                 <div>
                   <p style={{ fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--gray-500)", marginBottom: "var(--space-1)" }}>Implementation Steps</p>
                   <ol style={{ margin: 0, paddingLeft: "var(--space-5)", fontSize: "var(--text-sm)", display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
-                    {aiSteps.map((s) => (
+                    {(Array.isArray(aiSteps) ? aiSteps : []).map((s) => (
                       <li key={s.step}>
                         {s.description}
                         {s.file && (

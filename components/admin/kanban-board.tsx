@@ -5,6 +5,7 @@ import { Bug, Lightbulb, HelpCircle, ArrowRight, ArrowLeft, Sparkles } from "luc
 import { createClient } from "@/lib/supabase/client";
 import { formatRelativeTime } from "@/lib/formatters";
 import { RequestDetailModal } from "./request-detail-modal";
+import { ErrorBoundary } from "@/components/ui/error-boundary";
 import type { SupportRequest } from "@/lib/types/database";
 
 interface KanbanBoardProps {
@@ -150,12 +151,15 @@ export function KanbanBoard({ requests, onRefresh }: KanbanBoardProps) {
         })}
       </div>
       {selectedRequest && (
-        <RequestDetailModal
-          open={!!selectedRequest}
-          onClose={() => setSelectedRequest(null)}
-          request={selectedRequest}
-          onRefresh={onRefresh}
-        />
+        <ErrorBoundary>
+          <RequestDetailModal
+            key={selectedRequest.id}
+            open={!!selectedRequest}
+            onClose={() => setSelectedRequest(null)}
+            request={selectedRequest}
+            onRefresh={onRefresh}
+          />
+        </ErrorBoundary>
       )}
     </>
   );
