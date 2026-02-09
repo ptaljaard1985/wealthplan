@@ -231,7 +231,7 @@ export function RequestDetailModal({ open, onClose, request, onRefresh }: Reques
                 <p style={{ fontSize: "var(--text-sm)" }}>{aiSummary}</p>
               </div>
 
-              {aiAreas && aiAreas.length > 0 && (
+              {Array.isArray(aiAreas) && aiAreas.length > 0 && (
                 <div>
                   <p style={{ fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--gray-500)", marginBottom: "var(--space-1)" }}>Affected Areas</p>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-1)" }}>
@@ -244,7 +244,7 @@ export function RequestDetailModal({ open, onClose, request, onRefresh }: Reques
                 </div>
               )}
 
-              {aiSteps && aiSteps.length > 0 && (
+              {Array.isArray(aiSteps) && aiSteps.length > 0 && (
                 <div>
                   <p style={{ fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--gray-500)", marginBottom: "var(--space-1)" }}>Implementation Steps</p>
                   <ol style={{ margin: 0, paddingLeft: "var(--space-5)", fontSize: "var(--text-sm)", display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
