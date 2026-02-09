@@ -29,6 +29,15 @@ const statusBadgeClass: Record<string, string> = {
   done: "badge-success",
 };
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function toArray<T>(v: any): T[] {
+  if (Array.isArray(v)) return v;
+  if (typeof v === "string") {
+    try { const p = JSON.parse(v); if (Array.isArray(p)) return p; } catch { /* ignore */ }
+  }
+  return [];
+}
+
 export function RequestDetailModal({ open, onClose, request, onRefresh }: RequestDetailModalProps) {
   const [adminNotes, setAdminNotes] = useState(request.admin_notes || "");
   const [saving, setSaving] = useState(false);
@@ -36,18 +45,10 @@ export function RequestDetailModal({ open, onClose, request, onRefresh }: Reques
   const [analysing, setAnalysing] = useState(false);
   const [aiStatus, setAiStatus] = useState(request.ai_analysis_status);
   const [aiSummary, setAiSummary] = useState(request.ai_summary);
-  const [aiAreas, setAiAreas] = useState<string[] | null>(() => {
-    const v = request.ai_affected_areas;
-    if (Array.isArray(v)) return v;
-    if (typeof v === "string") try { return JSON.parse(v); } catch { return null; }
-    return v ?? null;
-  });
-  const [aiSteps, setAiSteps] = useState<{ step: number; description: string; file?: string }[] | null>(() => {
-    const v = request.ai_implementation;
-    if (Array.isArray(v)) return v;
-    if (typeof v === "string") try { return JSON.parse(v); } catch { return null; }
-    return v ?? null;
-  });
+  const [aiAreas, setAiAreas] = useState<string[]>(() => toArray<string>(request.ai_affected_areas));
+  const [aiSteps, setAiSteps] = useState<{ step: number; description: string; file?: string }[]>(
+    () => toArray<{ step: number; description: string; file?: string }>(request.ai_implementation),
+  );
   const [aiPrompt, setAiPrompt] = useState(request.ai_prompt);
   const [copied, setCopied] = useState(false);
   const [priority, setPriority] = useState<SupportRequest["priority"]>(request.priority);
@@ -86,8 +87,8 @@ export function RequestDetailModal({ open, onClose, request, onRefresh }: Reques
       if (res.ok) {
         const { analysis } = await res.json();
         setAiSummary(analysis.summary);
-        setAiAreas(analysis.affectedAreas);
-        setAiSteps(analysis.implementation);
+        setAiAreas(toArray(analysis.affectedAreas));
+        setAiSteps(toArray(analysis.implementation));
         setAiPrompt(analysis.prompt);
         setAiStatus("done");
       } else {
@@ -231,7 +232,7 @@ export function RequestDetailModal({ open, onClose, request, onRefresh }: Reques
                 <p style={{ fontSize: "var(--text-sm)" }}>{aiSummary}</p>
               </div>
 
-              {Array.isArray(aiAreas) && aiAreas.length > 0 && (
+              {aiAreas.length > 0 && (
                 <div>
                   <p style={{ fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--gray-500)", marginBottom: "var(--space-1)" }}>Affected Areas</p>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-1)" }}>
@@ -244,7 +245,7 @@ export function RequestDetailModal({ open, onClose, request, onRefresh }: Reques
                 </div>
               )}
 
-              {Array.isArray(aiSteps) && aiSteps.length > 0 && (
+              {aiSteps.length > 0 && (
                 <div>
                   <p style={{ fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--gray-500)", marginBottom: "var(--space-1)" }}>Implementation Steps</p>
                   <ol style={{ margin: 0, paddingLeft: "var(--space-5)", fontSize: "var(--text-sm)", display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
