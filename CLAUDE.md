@@ -310,7 +310,28 @@ All other data operations go directly through Supabase client SDK (no API routes
 
 ---
 
-## 11. Session Log
+## 11. Module Documentation
+
+Each major module has a `MODULE.md` file with purpose, key files, data flow, business rules, and dependencies. Read the relevant MODULE.md before modifying a module.
+
+| Module | Path | Focus |
+|--------|------|-------|
+| Projection Engine | `lib/engines/MODULE.md` | Core simulation: 7-phase annual loop, withdrawal solver, compound growth |
+| Root Utilities | `lib/MODULE.md` | Tax calculations (SARS 2025/2026), currency formatters, legacy projection wrapper |
+| Database | `db/MODULE.md` | Schema, 12 migrations, RLS policies, cascade relationships |
+| Supabase Setup | `lib/supabase/MODULE.md` | Browser/server clients, auth middleware, JWT refresh |
+| AI Analysis | `lib/ai/MODULE.md` | Claude-powered ticket analysis pipeline |
+| UI Primitives | `components/ui/MODULE.md` | Design system: Button, Modal, Card, CurrencyInput, etc. |
+| Accounts | `components/accounts/MODULE.md` | Account forms (4 types + property/CGT fields), valuations panel |
+| Families | `components/families/MODULE.md` | Family CRUD, dashboard cards |
+| Admin | `components/admin/MODULE.md` | Kanban board, ticket detail modal |
+| Feedback | `components/feedback/MODULE.md` | Floating FAB + submission modal with file uploads |
+| Client Pages | `app/clients/[id]/MODULE.md` | Tabbed family detail: charts, projections, tax, scenarios |
+| Protected Routes | `app/(main)/MODULE.md` | Dashboard, admin page, AppShell wrapper |
+
+---
+
+## 12. Session Log
 
 > Track what each session changed. Append new entries — don't delete old ones.
 
@@ -329,12 +350,14 @@ All other data operations go directly through Supabase client SDK (no API routes
 ---
 
 ### Session — 2026-02-10
-**Focus:** Created CLAUDE.md for persistent session context
+**Focus:** Created CLAUDE.md and MODULE.md files for persistent session context
 **Changes:**
-- `CLAUDE.md`: Created with full project documentation
+- `CLAUDE.md`: Created with full project documentation (12 sections)
+- 12 `MODULE.md` files: Created across lib/, db/, components/, and app/ directories
 **Decisions:**
 - CSS custom properties is the established styling pattern — follow it until a deliberate migration decision is made
 - Both client-side and server-side data fetching are acceptable
+- MODULE.md files kept under 40 lines each — concise summaries, not exhaustive docs
 **Follow-up:**
 - Add planned features to "Not Started" section when decided
 - Consider adding unit tests for projection engine and tax calculations
